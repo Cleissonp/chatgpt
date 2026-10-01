@@ -633,6 +633,46 @@ kbd {
     font: 600 12px var(--sans);
 }
 
+
+/* ---------- Progressive slide animation ---------- */
+.fragment {
+    opacity: 0;
+    transform: translateY(18px);
+    pointer-events: none;
+    transition: opacity .45s cubic-bezier(.2,.8,.2,1),
+                transform .45s cubic-bezier(.2,.8,.2,1);
+}
+.fragment.revealed {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+}
+.fragment.from-left { transform: translateX(-24px); }
+.fragment.from-right { transform: translateX(24px); }
+.fragment.scale { transform: scale(.94); }
+.fragment.revealed.from-left,
+.fragment.revealed.from-right,
+.fragment.revealed.scale { transform: none; }
+
+.slide.has-more::after {
+    content: "→";
+    position: absolute;
+    right: 24px;
+    bottom: 18px;
+    color: var(--muted);
+    font-size: 18px;
+    opacity: .65;
+    animation: pulseArrow 1.4s ease-in-out infinite;
+}
+@keyframes pulseArrow {
+    0%,100% { transform: translateX(0); opacity:.35; }
+    50% { transform: translateX(5px); opacity:.8; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fragment { transition:none; }
+    .slide.has-more::after { animation:none; }
+}
+
 /* ---------- Responsivo ---------- */
 
 @media (max-width: 800px) {
@@ -728,16 +768,16 @@ kbd {
 <!-- SLIDE 1 -->
 <section class="slide active" data-title="Visão geral">
     <div class="slide-inner">
-        <div class="eyebrow">Conceitos básicos</div>
-        <h1>Mas o que é um GPT?</h1>
-        <p class="lead">
+        <div class="eyebrow fragment">Conceitos básicos</div>
+        <h1 class="fragment from-left">Mas o que é um GPT?</h1>
+        <p class="lead fragment">
             Sabe quando você está digitando uma mensagem no celular e ele começa
             a sugerir qual será a sua próxima palavra? O GPT é como se fosse esse
             corretor automático... só que muito poderoso, treinado com grandes
             quantidades de textos.
         </p>
 
-        <div class="grid grid-2">
+        <div class="grid grid-2 fragment">
             <article class="card red">
                 <h3>Generative</h3>
                 <p>É capaz de <strong>gerar conteúdo</strong>, como textos, códigos e outras respostas.</p>
@@ -753,14 +793,14 @@ kbd {
 <!-- SLIDE 2 -->
 <section class="slide" data-title="Próxima palavra">
     <div class="slide-inner">
-        <div class="eyebrow">Como ele funciona</div>
-        <h2>O jogo da próxima palavra</h2>
-        <p class="lead">
+        <div class="eyebrow fragment">Como ele funciona</div>
+        <h2 class="fragment from-left">O jogo da próxima palavra</h2>
+        <p class="lead fragment">
             Uma forma simples de entender um modelo de linguagem é pensar na tarefa
             de prever qual token provavelmente vem a seguir.
         </p>
 
-        <div class="card red" style="margin-top:30px">
+        <div class="card red fragment scale" style="margin-top:30px">
             <h3>Complete a frase</h3>
 
             <div class="question">
@@ -781,7 +821,7 @@ kbd {
             </div>
         </div>
 
-        <div class="grid grid-2">
+        <div class="grid grid-2 fragment">
             <article class="card soft">
                 <h3>Contexto</h3>
                 <p>
@@ -804,9 +844,9 @@ kbd {
 <!-- SLIDE 3 -->
 <section class="slide" data-title="Transformer">
     <div class="slide-inner">
-        <div class="eyebrow">Arquitetura</div>
-        <h2>Por dentro do “T” — Transformer</h2>
-        <p class="lead">
+        <div class="eyebrow fragment">Arquitetura</div>
+        <h2 class="fragment from-left">Por dentro do “T” — Transformer</h2>
+        <p class="lead fragment">
             A arquitetura Transformer usa mecanismos de atenção para relacionar
             diferentes partes da sequência e construir uma representação contextual.
         </p>
@@ -878,9 +918,9 @@ kbd {
 <!-- SLIDE 4 -->
 <section class="slide" data-title="Sigla GPT">
     <div class="slide-inner">
-        <div class="eyebrow">A sigla</div>
-        <h2>O que significa G-P-T?</h2>
-        <p class="lead">
+        <div class="eyebrow fragment">A sigla</div>
+        <h2 class="fragment from-left">O que significa G-P-T?</h2>
+        <p class="lead fragment">
             Cada parte da sigla descreve uma característica importante do modelo.
         </p>
 
@@ -972,9 +1012,30 @@ const overviewGrid = document.getElementById("overviewGrid");
 const help = document.getElementById("help");
 
 let current = 0;
+let fragmentIndex = 0;
 
 function pad(n) {
     return String(n).padStart(2, "0");
+}
+
+function getFragments(slide = slides[current]) {
+    return [...slide.querySelectorAll(".fragment")];
+}
+
+function updateFragmentState() {
+    const fragments = getFragments();
+    fragments.forEach((fragment, i) => {
+        fragment.classList.toggle("revealed", i < fragmentIndex);
+    });
+
+    const hasMore = fragmentIndex < fragments.length;
+    slides[current].classList.toggle("has-more", hasMore);
+
+    document.getElementById("prevBtn").disabled =
+        current === 0 && fragmentIndex === 0;
+
+    document.getElementById("nextBtn").disabled =
+        current === slides.length - 1 && !hasMore;
 }
 
 function buildNavigation() {
@@ -998,13 +1059,21 @@ function buildNavigation() {
     });
 }
 
-function goTo(index) {
+function goTo(index, revealAll = false) {
     current = Math.max(0, Math.min(index, slides.length - 1));
 
     slides.forEach((slide, i) => {
         slide.classList.toggle("active", i === current);
         if (i === current) slide.scrollTop = 0;
+        if (i !== current) {
+            slide.querySelectorAll(".fragment").forEach(f =>
+                f.classList.remove("revealed")
+            );
+        }
     });
+
+    const fragments = getFragments();
+    fragmentIndex = revealAll ? fragments.length : 0;
 
     counter.textContent = `${pad(current + 1)}/${pad(slides.length)}`;
     progress.style.width = `${((current + 1) / slides.length) * 100}%`;
@@ -1014,16 +1083,39 @@ function goTo(index) {
         item.classList.toggle("active", i === current);
     });
 
-    document.getElementById("prevBtn").disabled = current === 0;
-    document.getElementById("nextBtn").disabled = current === slides.length - 1;
+    updateFragmentState();
 }
 
 function next() {
-    if (current < slides.length - 1) goTo(current + 1);
+    const fragments = getFragments();
+
+    if (fragmentIndex < fragments.length) {
+        fragmentIndex++;
+        updateFragmentState();
+
+        const revealed = fragments[fragmentIndex - 1];
+        revealed?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest"
+        });
+        return;
+    }
+
+    if (current < slides.length - 1) {
+        goTo(current + 1);
+    }
 }
 
 function previous() {
-    if (current > 0) goTo(current - 1);
+    if (fragmentIndex > 0) {
+        fragmentIndex--;
+        updateFragmentState();
+        return;
+    }
+
+    if (current > 0) {
+        goTo(current - 1, true);
+    }
 }
 
 document.getElementById("nextBtn").addEventListener("click", next);
