@@ -714,6 +714,37 @@ kbd {
     }
 }
 </style>
+
+<style id="fragment-order-fix">
+/* Correção: nenhum fragmento pode aparecer antes do primeiro clique */
+.fragment {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateY(18px) scale(.98);
+  pointer-events: none;
+  transition: opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
+}
+
+.fragment.revealed {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  transition: opacity .45s ease, transform .45s ease, visibility 0s linear 0s;
+}
+
+/* O slide 4 também respeita a sequência: título primeiro, cards depois */
+.slide[data-slide="3"] .fragment {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.slide[data-slide="3"] .fragment.revealed {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+</style>
+
 </head>
 
 <body>
@@ -748,7 +779,7 @@ kbd {
         </g>
     </g>
 </svg>
-        <span class="title">IA Generativa Aplicada à Programação — ChatGPT</span>
+        <span class="title">IA Generativa Aplicada à Programação</span>
     </div>
 
     <div class="top-actions">
